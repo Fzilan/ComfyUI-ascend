@@ -2,7 +2,8 @@ import comfy.sd
 import comfy.model_sampling
 import comfy.latent_formats
 import nodes
-import torch
+import mindspore as ms
+from mindspore import mint
 import node_helpers
 
 
@@ -28,7 +29,7 @@ class ModelSamplingDiscreteDistilled(comfy.model_sampling.ModelSamplingDiscrete)
 
         self.skip_steps = self.num_timesteps // self.original_timesteps
 
-        sigmas_valid = torch.zeros((self.original_timesteps), dtype=torch.float32)
+        sigmas_valid = mint.zeros((self.original_timesteps), dtype=ms.float32)
         for x in range(self.original_timesteps):
             sigmas_valid[self.original_timesteps - 1 - x] = self.sigmas[self.num_timesteps - 1 - x * self.skip_steps]
 
@@ -36,17 +37,16 @@ class ModelSamplingDiscreteDistilled(comfy.model_sampling.ModelSamplingDiscrete)
 
     def timestep(self, sigma):
         log_sigma = sigma.log()
-        dists = log_sigma.to(self.log_sigmas.device) - self.log_sigmas[:, None]
-        return (dists.abs().argmin(dim=0).view(sigma.shape) * self.skip_steps + (self.skip_steps - 1)).to(sigma.device)
+        dists = log_sigma - self.log_sigmas[:, None]
+        return dists.abs().argmin(dim=0).view(sigma.shape) * self.skip_steps + (self.skip_steps - 1)
 
     def sigma(self, timestep):
-        t = torch.clamp(((timestep.float().to(self.log_sigmas.device) - (self.skip_steps - 1)) / self.skip_steps).float(), min=0, max=(len(self.sigmas) - 1))
+        t = mint.clamp(((timestep.float() - (self.skip_steps - 1)) / self.skip_steps).float(), min=0, max=(len(self.sigmas) - 1))
         low_idx = t.floor().long()
         high_idx = t.ceil().long()
         w = t.frac()
         log_sigma = (1 - w) * self.log_sigmas[low_idx] + w * self.log_sigmas[high_idx]
-        return log_sigma.exp().to(timestep.device)
-
+        return log_sigma.exp()
 
 class ModelSamplingDiscrete:
     @classmethod
@@ -62,7 +62,7 @@ class ModelSamplingDiscrete:
     CATEGORY = "advanced/model"
 
     def patch(self, model, sampling, zsnr):
-        m = model.clone()
+        m = model.copy()
 
         sampling_base = comfy.model_sampling.ModelSamplingDiscrete
         if sampling == "eps":
@@ -98,7 +98,7 @@ class ModelSamplingStableCascade:
     CATEGORY = "advanced/model"
 
     def patch(self, model, shift):
-        m = model.clone()
+        m = model.copy()
 
         sampling_base = comfy.model_sampling.StableCascadeSampling
         sampling_type = comfy.model_sampling.EPS
@@ -124,7 +124,7 @@ class ModelSamplingSD3:
     CATEGORY = "advanced/model"
 
     def patch(self, model, shift, multiplier=1000):
-        m = model.clone()
+        m = model.copy()
 
         sampling_base = comfy.model_sampling.ModelSamplingDiscreteFlow
         sampling_type = comfy.model_sampling.CONST
@@ -165,7 +165,7 @@ class ModelSamplingFlux:
     CATEGORY = "advanced/model"
 
     def patch(self, model, max_shift, base_shift, width, height):
-        m = model.clone()
+        m = model.copy()
 
         x1 = 256
         x2 = 4096
@@ -200,7 +200,7 @@ class ModelSamplingContinuousEDM:
     CATEGORY = "advanced/model"
 
     def patch(self, model, sampling, sigma_max, sigma_min):
-        m = model.clone()
+        m = model.copy()
 
         sampling_base = comfy.model_sampling.ModelSamplingContinuousEDM
         latent_format = None
@@ -245,7 +245,7 @@ class ModelSamplingContinuousV:
     CATEGORY = "advanced/model"
 
     def patch(self, model, sampling, sigma_max, sigma_min):
-        m = model.clone()
+        m = model.copy()
 
         sigma_data = 1.0
         if sampling == "v_prediction":
@@ -286,15 +286,15 @@ class RescaleCFG:
 
             #rescalecfg
             x_cfg = uncond + cond_scale * (cond - uncond)
-            ro_pos = torch.std(cond, dim=(1,2,3), keepdim=True)
-            ro_cfg = torch.std(x_cfg, dim=(1,2,3), keepdim=True)
+            ro_pos = mint.std(cond, dim=(1,2,3), keepdim=True)
+            ro_cfg = mint.std(x_cfg, dim=(1,2,3), keepdim=True)
 
             x_rescaled = x_cfg * (ro_pos / ro_cfg)
             x_final = multiplier * x_rescaled + (1.0 - multiplier) * x_cfg
 
             return x_orig - (x - x_final * sigma / (sigma * sigma + 1.0) ** 0.5)
 
-        m = model.clone()
+        m = model.copy()
         m.set_model_sampler_cfg_function(rescale_cfg)
         return (m, )
 
@@ -311,8 +311,8 @@ class ModelComputeDtype:
     CATEGORY = "advanced/debug/model"
 
     def patch(self, model, dtype):
-        m = model.clone()
-        m.set_model_compute_dtype(node_helpers.string_to_torch_dtype(dtype))
+        m = model.copy()
+        m.set_model_compute_dtype(node_helpers.string_to_mindspore_dtype(dtype))
         return (m, )
 
 
