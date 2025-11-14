@@ -15,8 +15,8 @@ from .ldm.models.autoencoder import AutoencoderKL, AutoencodingEngine
 # import comfy.ldm.genmo.vae.model
 # import comfy.ldm.lightricks.vae.causal_video_autoencoder
 # import comfy.ldm.cosmos.vae
-# import comfy.ldm.wan.vae
-# import comfy.ldm.wan.vae2_2
+import comfy.ldm.wan.vae
+import comfy.ldm.wan.vae2_2
 # import comfy.ldm.hunyuan3d.vae
 # import comfy.ldm.ace.vae.music_dcae_pipeline
 # import comfy.ldm.hunyuan_video.vae
@@ -36,7 +36,7 @@ from . import model_detection
 from . import sd1_clip
 from . import sdxl_clip
 # import comfy.text_encoders.sd2_clip
-# import comfy.text_encoders.sd3_clip
+import comfy.text_encoders.sd3_clip
 # import comfy.text_encoders.sa_t5
 # import comfy.text_encoders.aura_t5
 # import comfy.text_encoders.pixart_t5
@@ -48,7 +48,7 @@ import comfy.text_encoders.long_clipl
 # import comfy.text_encoders.hunyuan_video
 # import comfy.text_encoders.cosmos
 # import comfy.text_encoders.lumina2
-# import comfy.text_encoders.wan
+import comfy.text_encoders.wan
 # import comfy.text_encoders.hidream
 # import comfy.text_encoders.ace
 # import comfy.text_encoders.omnigen2
@@ -484,31 +484,30 @@ class VAE:
                 # self.working_dtypes = [mindspore.bfloat16, mindspore.float32]
                 raise NotImplementedError
             elif "decoder.middle.0.residual.0.gamma" in sd:
-                # if "decoder.upsamples.0.upsamples.0.residual.2.weight" in sd:  # Wan 2.2 VAE
-                #     self.upscale_ratio = (lambda a: max(0, a * 4 - 3), 16, 16)
-                #     self.upscale_index_formula = (4, 16, 16)
-                #     self.downscale_ratio = (lambda a: max(0, math.floor((a + 3) / 4)), 16, 16)
-                #     self.downscale_index_formula = (4, 16, 16)
-                #     self.latent_dim = 3
-                #     self.latent_channels = 48
-                #     ddconfig = {"dim": 160, "z_dim": self.latent_channels, "dim_mult": [1, 2, 4, 4], "num_res_blocks": 2, "attn_scales": [], "temperal_downsample": [False, True, True], "dropout": 0.0}
-                #     self.first_stage_model = comfy.ldm.wan.vae2_2.WanVAE(**ddconfig)
-                #     self.working_dtypes = [mindspore.bfloat16, mindspore.float16, mindspore.float32]
-                #     self.memory_used_encode = lambda shape, dtype: 3300 * shape[3] * shape[4] * model_management.dtype_size(dtype)
-                #     self.memory_used_decode = lambda shape, dtype: 8000 * shape[3] * shape[4] * (16 * 16) * model_management.dtype_size(dtype)
-                # else:  # Wan 2.1 VAE
-                #     self.upscale_ratio = (lambda a: max(0, a * 4 - 3), 8, 8)
-                #     self.upscale_index_formula = (4, 8, 8)
-                #     self.downscale_ratio = (lambda a: max(0, math.floor((a + 3) / 4)), 8, 8)
-                #     self.downscale_index_formula = (4, 8, 8)
-                #     self.latent_dim = 3
-                #     self.latent_channels = 16
-                #     ddconfig = {"dim": 96, "z_dim": self.latent_channels, "dim_mult": [1, 2, 4, 4], "num_res_blocks": 2, "attn_scales": [], "temperal_downsample": [False, True, True], "dropout": 0.0}
-                #     self.first_stage_model = comfy.ldm.wan.vae.WanVAE(**ddconfig)
-                #     self.working_dtypes = [mindspore.bfloat16, mindspore.float16, mindspore.float32]
-                #     self.memory_used_encode = lambda shape, dtype: 6000 * shape[3] * shape[4] * model_management.dtype_size(dtype)
-                #     self.memory_used_decode = lambda shape, dtype: 7000 * shape[3] * shape[4] * (8 * 8) * model_management.dtype_size(dtype)
-                raise NotImplementedError
+                if "decoder.upsamples.0.upsamples.0.residual.2.weight" in sd:  # Wan 2.2 VAE
+                    self.upscale_ratio = (lambda a: max(0, a * 4 - 3), 16, 16)
+                    self.upscale_index_formula = (4, 16, 16)
+                    self.downscale_ratio = (lambda a: max(0, math.floor((a + 3) / 4)), 16, 16)
+                    self.downscale_index_formula = (4, 16, 16)
+                    self.latent_dim = 3
+                    self.latent_channels = 48
+                    ddconfig = {"dim": 160, "z_dim": self.latent_channels, "dim_mult": [1, 2, 4, 4], "num_res_blocks": 2, "attn_scales": [], "temperal_downsample": [False, True, True], "dropout": 0.0}
+                    self.first_stage_model = comfy.ldm.wan.vae2_2.WanVAE(**ddconfig)
+                    self.working_dtypes = [mindspore.bfloat16, mindspore.float16, mindspore.float32]
+                    self.memory_used_encode = lambda shape, dtype: 3300 * shape[3] * shape[4] * model_management.dtype_size(dtype)
+                    self.memory_used_decode = lambda shape, dtype: 8000 * shape[3] * shape[4] * (16 * 16) * model_management.dtype_size(dtype)
+                else:  # Wan 2.1 VAE
+                    self.upscale_ratio = (lambda a: max(0, a * 4 - 3), 8, 8)
+                    self.upscale_index_formula = (4, 8, 8)
+                    self.downscale_ratio = (lambda a: max(0, math.floor((a + 3) / 4)), 8, 8)
+                    self.downscale_index_formula = (4, 8, 8)
+                    self.latent_dim = 3
+                    self.latent_channels = 16
+                    ddconfig = {"dim": 96, "z_dim": self.latent_channels, "dim_mult": [1, 2, 4, 4], "num_res_blocks": 2, "attn_scales": [], "temperal_downsample": [False, True, True], "dropout": 0.0}
+                    self.first_stage_model = comfy.ldm.wan.vae.WanVAE(**ddconfig)
+                    self.working_dtypes = [mindspore.bfloat16, mindspore.float16, mindspore.float32]
+                    self.memory_used_encode = lambda shape, dtype: 6000 * shape[3] * shape[4] * model_management.dtype_size(dtype)
+                    self.memory_used_decode = lambda shape, dtype: 7000 * shape[3] * shape[4] * (8 * 8) * model_management.dtype_size(dtype)
             # Hunyuan 3d v2 2.0 & 2.1
             elif "geo_decoder.cross_attn_decoder.ln_1.bias" in sd:
 
@@ -1046,10 +1045,9 @@ def load_text_encoder_state_dicts(state_dicts=[], embedding_directory=None, clip
                 # clip_target.tokenizer = comfy.text_encoders.pixart_t5.PixArtTokenizer
                 raise NotImplementedError
             elif clip_type == CLIPType.WAN:
-                # clip_target.clip = comfy.text_encoders.wan.te(**t5xxl_detect(clip_data))
-                # clip_target.tokenizer = comfy.text_encoders.wan.WanT5Tokenizer
-                # tokenizer_data["spiece_model"] = clip_data[0].get("spiece_model", None)
-                raise NotImplementedError
+                clip_target.clip = comfy.text_encoders.wan.te(**t5xxl_detect(clip_data))
+                clip_target.tokenizer = comfy.text_encoders.wan.WanT5Tokenizer
+                tokenizer_data["spiece_model"] = clip_data[0].get("spiece_model", None)
             elif clip_type == CLIPType.HIDREAM:
                 # clip_target.clip = comfy.text_encoders.hidream.hidream_clip(**t5xxl_detect(clip_data),
                 #                                                         clip_l=False, clip_g=False, t5=True, llama=False, dtype_llama=None, llama_scaled_fp8=None)

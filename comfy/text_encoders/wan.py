@@ -22,12 +22,12 @@ class WanT5Tokenizer(sd1_clip.SD1Tokenizer):
         super().__init__(embedding_directory=embedding_directory, tokenizer_data=tokenizer_data, clip_name="umt5xxl", tokenizer=UMT5XXlTokenizer)
 
 class WanT5Model(sd1_clip.SD1ClipModel):
-    def __init__(self, device="cpu", dtype=None, model_options={}, **kwargs):
+    def __init__(self, device=None, dtype=None, model_options={}, **kwargs):
         super().__init__(device=device, dtype=dtype, model_options=model_options, name="umt5xxl", clip_model=UMT5XXlModel, **kwargs)
 
 def te(dtype_t5=None, t5xxl_scaled_fp8=None):
     class WanTEModel(WanT5Model):
-        def __init__(self, device="cpu", dtype=None, model_options={}):
+        def __init__(self, device=None, dtype=None, model_options={}):
             if t5xxl_scaled_fp8 is not None and "scaled_fp8" not in model_options:
                 model_options = model_options.copy()
                 model_options["scaled_fp8"] = t5xxl_scaled_fp8
